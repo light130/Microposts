@@ -30,4 +30,24 @@ class UsersIndexTest < ActionDispatch::IntegrationTest
     assert_select 'a', text: 'delete', count: 0
   end
 
+  test "users search" do
+    log_in_as(@admin)
+    #ユーザーを検索
+    get users_path, params: { q: { name_cont: "a" } }
+    q = User.ransack(name_cont: "a", activated: true)
+    q.result.paginate(page:1).each do |user|
+      assert_select 'a[href=?]', user_path(user), text: user.name
+    end
+    assert_select 'title', "Search Result | Photogram"
+    #全てのユーザー
+    get users_path, params: { q: { name_cont: "" } }
+    User.paginate(page:1).each do |user|
+      assert_select 'a[href=?]', user_path(user), text: user.name
+    end
+    assert_select 'title', "All users | Photogram"
+    #検索対象のユーザーが存在しない
+    get users_path, params: { q: { name_cont: "abcdefghijklmnopqrstuvwxyz" } }
+    assert_match "Couldn't find any user.", response.body
+  end
+
 end

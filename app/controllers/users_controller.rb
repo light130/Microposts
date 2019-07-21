@@ -8,7 +8,14 @@ class UsersController < ApplicationController
   end
 
   def index
-    @users = User.where(activated: true).paginate(page: params[:page])
+    if params[:q] && params[:q].reject { |key, value| value.blank? }.present?
+      @q = User.ransack(search_params, activated: true)
+      @title = "Search Result"
+    else
+      @q = User.ransack(activated: true)
+      @title = "All users"
+    end
+    @users = @q.result.paginate(page: params[:page])
   end
 
   def show
@@ -69,6 +76,9 @@ class UsersController < ApplicationController
                       :password_confirmation)
     end
 
+    def search_params
+      params.require(:q).permit(:name_cont)
+    end
 
     #正しいユーザーかどうか確認
     def correct_user
